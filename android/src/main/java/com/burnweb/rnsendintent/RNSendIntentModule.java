@@ -11,6 +11,7 @@ import android.util.Log;
 import android.net.Uri;
 import android.telephony.TelephonyManager;
 import android.content.Context;
+import android.support.v4.content.FileProvider;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -651,6 +652,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void openFileChooser(ReadableMap options, String title) {
+/*
         Intent intent = new Intent(Intent.ACTION_VIEW);
 
         if (options.hasKey("subject")) {
@@ -664,6 +666,39 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
         Activity currentActivity = getCurrentActivity();
         if (currentActivity != null) {
             currentActivity.startActivity(Intent.createChooser(intent, title));
+        }
+*/
+        if (android.os.Build.VERSION.SDK_INT >= 24) {
+            Uri uriForFile = FileProvider.getUriForFile(getCurrentActivity(), this.getReactApplicationContext().getPackageName() + ".provider", new File(options.getString("fileUrl")));
+
+            Intent intent = new Intent(Intent.ACTION_VIEW).setDataAndType(uriForFile, options.getString("type"));
+
+            if (options.hasKey("subject")) {
+                intent.putExtra(Intent.EXTRA_SUBJECT, options.getString("subject"));
+            }
+
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Activity currentActivity = getCurrentActivity();
+            if (currentActivity != null) {
+                currentActivity.startActivity(Intent.createChooser(intent, title));
+            }
+        } else {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+
+            if (options.hasKey("subject")) {
+                intent.putExtra(Intent.EXTRA_SUBJECT, options.getString("subject"));
+            }
+
+            File fileUrl = new File(options.getString("fileUrl"));
+            intent.setDataAndType(Uri.fromFile(fileUrl), options.getString("type"));
+
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            Activity currentActivity = getCurrentActivity();
+            if (currentActivity != null) {
+                currentActivity.startActivity(Intent.createChooser(intent, title));
+            }
         }
     }
 
