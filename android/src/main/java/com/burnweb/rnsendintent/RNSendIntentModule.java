@@ -104,7 +104,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
         while(it.hasNextKey()) {
             String key = it.nextKey();
             ReadableType type = extras.getType(key);
-            
+
             switch (type) {
                 case Boolean:
                     intent.putExtra(key, extras.getBoolean(key));
@@ -395,6 +395,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
       final File file = new File(this.reactContext.getExternalFilesDir(null), saveAs);
 
       final Request request = new Request.Builder().url(uri).build();
+      final String packageName = this.getReactApplicationContext().getPackageName();
       new OkHttpClient()
       .newCall(request)
       .enqueue(new okhttp3.Callback() {
@@ -424,11 +425,17 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
 
           try (final ResponseBody body = response.body()) {
             saveFile(body);
+            Intent intent;
 
-            final Intent intent = new Intent(Intent.ACTION_VIEW)
-                                  .setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
+            if (android.os.Build.VERSION.SDK_INT >= 24) {
+              Uri uriForFile = FileProvider.getUriForFile(getCurrentActivity(), packageName + ".provider", file);
+              intent = new Intent(Intent.ACTION_VIEW).setDataAndType(uriForFile, "application/vnd.android.package-archive");
+              intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            } else {
+              intent = new Intent(Intent.ACTION_VIEW)
+                .setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
+            }
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
             reactContext.startActivity(intent);
 
             promise.resolve(true);
@@ -514,7 +521,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
 
         ArrayList<Object> readable = option.toArrayList();
         Intent intent = new Intent(Intent.ACTION_SEND_MULTIPLE);
- 
+
           String name = Intent.EXTRA_TEXT;
           ArrayList<Object> values = new ArrayList<>();
 
@@ -564,9 +571,9 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
             sendIntent.setDataAndType(uri, mimeType);
         else
             sendIntent.setData(uri);
-        
+
         sendIntent.setPackage(packageName);
-        
+
         if (!parseExtras(extras, sendIntent)) {
             promise.resolve(false);
             return;
