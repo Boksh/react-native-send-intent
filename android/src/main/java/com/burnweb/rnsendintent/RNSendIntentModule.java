@@ -396,7 +396,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
       final File file = new File(this.reactContext.getExternalFilesDir(null), saveAs);
 
       final Request request = new Request.Builder().url(uri).build();
-      final String rContext = this.reactContext;
+      final Context rContext = this.reactContext;
       new OkHttpClient()
       .newCall(request)
       .enqueue(new okhttp3.Callback() {
