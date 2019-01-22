@@ -13,7 +13,6 @@ import android.os.Build;
 import android.support.v4.content.FileProvider;
 import android.telephony.TelephonyManager;
 import android.content.Context;
-import android.support.v4.content.FileProvider;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -397,7 +396,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
       final File file = new File(this.reactContext.getExternalFilesDir(null), saveAs);
 
       final Request request = new Request.Builder().url(uri).build();
-      final String packageName = this.getReactApplicationContext().getPackageName();
+      final String rContext = this.reactContext;
       new OkHttpClient()
       .newCall(request)
       .enqueue(new okhttp3.Callback() {
@@ -427,15 +426,14 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
 
           try (final ResponseBody body = response.body()) {
             saveFile(body);
-            Intent intent;
+            Intent intent = new Intent(Intent.ACTION_VIEW);
 
-            if (android.os.Build.VERSION.SDK_INT >= 24) {
-              Uri uriForFile = FileProvider.getUriForFile(getCurrentActivity(), packageName + ".provider", file);
-              intent = new Intent(Intent.ACTION_VIEW).setDataAndType(uriForFile, "application/vnd.android.package-archive");
+            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+              Uri uri = FileProvider.getUriForFile(rContext, rContext.getPackageName() + ".fileprovider", file);
+              intent.setDataAndType(uri, "application/vnd.android.package-archive");
               intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             } else {
-              intent = new Intent(Intent.ACTION_VIEW)
-                .setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
+              intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
             }
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
             reactContext.startActivity(intent);
@@ -661,7 +659,7 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void openFileChooser(ReadableMap options, String title) {
-/*
+
         Intent intent = new Intent(Intent.ACTION_VIEW);
 
         if (options.hasKey("subject")) {
@@ -669,9 +667,11 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
         }
 
         File fileUrl = new File(options.getString("fileUrl"));
+
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
             Uri uri = FileProvider.getUriForFile(this.reactContext, this.reactContext.getPackageName() + ".fileprovider", fileUrl);
             intent.setDataAndType(uri, options.getString("type"));
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } else {
             intent.setDataAndType(Uri.fromFile(fileUrl), options.getString("type"));
         }
@@ -681,39 +681,5 @@ public class RNSendIntentModule extends ReactContextBaseJavaModule {
         if (currentActivity != null) {
             currentActivity.startActivity(Intent.createChooser(intent, title));
         }
-*/
-        if (android.os.Build.VERSION.SDK_INT >= 24) {
-            Uri uriForFile = FileProvider.getUriForFile(getCurrentActivity(), this.getReactApplicationContext().getPackageName() + ".provider", new File(options.getString("fileUrl")));
-
-            Intent intent = new Intent(Intent.ACTION_VIEW).setDataAndType(uriForFile, options.getString("type"));
-
-            if (options.hasKey("subject")) {
-                intent.putExtra(Intent.EXTRA_SUBJECT, options.getString("subject"));
-            }
-
-            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            Activity currentActivity = getCurrentActivity();
-            if (currentActivity != null) {
-                currentActivity.startActivity(Intent.createChooser(intent, title));
-            }
-        } else {
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-
-            if (options.hasKey("subject")) {
-                intent.putExtra(Intent.EXTRA_SUBJECT, options.getString("subject"));
-            }
-
-            File fileUrl = new File(options.getString("fileUrl"));
-            intent.setDataAndType(Uri.fromFile(fileUrl), options.getString("type"));
-
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            Activity currentActivity = getCurrentActivity();
-            if (currentActivity != null) {
-                currentActivity.startActivity(Intent.createChooser(intent, title));
-            }
-        }
     }
-
 }
